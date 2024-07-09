@@ -1,0 +1,14 @@
+---
+- name: Sets which boot device will be used on next boot
+  hosts: localhost
+
+  tasks:
+  - ipmi_power:
+      name: 60.30.158.16
+      user: root
+      password: dlxpzm
+      state: on
+      machine:
+        - targetAddress: 14
+        - targetAddress: 16
+

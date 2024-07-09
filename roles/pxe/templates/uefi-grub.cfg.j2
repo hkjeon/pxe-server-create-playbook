@@ -1,0 +1,5 @@
+set timeout=15
+menuentry 'Install RedHat 8.5' {
+    linuxefi pxelinux/vmlinuz inst.ks=http://{{ pxe.ipaddr }}:8080/ks/kickstart.conf inst.stage2=http://{{ pxe.ipaddr }}:8080/image/ quiet
+    initrdefi pxelinux/initrd.img
+}

@@ -1,0 +1,80 @@
+non-authoritative;
+allow bootp;
+option space pxelinux;
+option pxelinux.magic code 208 = string;
+option pxelinux.configfile code 209 = text;
+option pxelinux.pathprefix code 210 = text;
+option pxelinux.reboottime code 211 = unsigned integer 32;
+option architecture-type code 93 = unsigned integer 16;
+
+subnet {{ dhcp.subnet }} netmask {{ dhcp.netmask }} {
+        option routers {{ dhcp.gateway }};
+        range {{ dhcp.rangestart }} {{ dhcp.rangeend }};
+	deny unknown-clients;
+	interface {{ dhcp.interface }};
+
+        class "pxeclients" {
+          match if substring (option vendor-class-identifier, 0, 9) = "PXEClient";
+          next-server {{ pxe.ipaddr }};
+
+          if option architecture-type = 00:07 {
+            filename "pxelinux/BOOTX64.EFI";
+          } else {
+            filename "pxelinux/pxelinux.0";
+            }
+        }
+}
+
+host {{ worker1.name }}{
+  hardware Ethernet {{ worker1.macaddr }} ;
+  fixed-address {{ worker1.ipaddr }} ;
+  option host-name "{{ worker1.name }}" ;
+}
+
+host {{ worker2.name }}{
+  hardware Ethernet {{ worker2.macaddr }} ;
+  fixed-address {{ worker2.ipaddr }} ;
+  option host-name "{{ worker2.name }}" ;
+}
+
+host {{ worker3.name }}{
+  hardware Ethernet {{ worker3.macaddr }} ;
+  fixed-address {{ worker3.ipaddr }} ;
+  option host-name "{{ worker3.name }}" ;
+}
+
+host {{ worker4.name }}{
+  hardware Ethernet {{ worker4.macaddr }} ;
+  fixed-address {{ worker4.ipaddr }} ;
+  option host-name "{{ worker4.name }}" ;
+}
+
+host {{ worker5.name }}{
+  hardware Ethernet {{ worker5.macaddr }} ;
+  fixed-address {{ worker5.ipaddr }} ;
+  option host-name "{{ worker5.name }}" ;
+}
+
+host {{ worker6.name }}{
+  hardware Ethernet {{ worker6.macaddr }} ;
+  fixed-address {{ worker6.ipaddr }} ;
+  option host-name "{{ worker6.name }}" ;
+}
+
+host {{ worker7.name }}{
+  hardware Ethernet {{ worker7.macaddr }} ;
+  fixed-address {{ worker7.ipaddr }} ;
+  option host-name "{{ worker7.name }}" ;
+}
+
+host {{ worker8.name }}{
+  hardware Ethernet {{ worker8.macaddr }} ;
+  fixed-address {{ worker8.ipaddr }} ;
+  option host-name "{{ worker8.name }}" ;
+}
+
+host {{ worker9.name }}{
+  hardware Ethernet {{ worker9.macaddr }} ;
+  fixed-address {{ worker9.ipaddr }} ;
+  option host-name "{{ worker9.name }}" ;
+}

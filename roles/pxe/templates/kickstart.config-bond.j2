@@ -1,0 +1,141 @@
+#version=RHEL8
+ignoredisk --only-use={{ disk }}
+
+# Partition Type (LVM - sda)
+#autopart --type=lvm --nohome
+
+# Partition Type (Standard - sda)
+part /boot/efi --asprimary --fstype=vfat --size=200 --ondisk={{ disk }}
+part /boot --asprimary --fstype=xfs --size=1024 --ondisk={{ disk }}
+#part swap --asprimary --fstype=swap --size=8192 --ondisk={{ disk }}
+part / --asprimary --fstype=xfs --size=100 --ondisk={{ disk }} --grow
+
+# Partition Type (LVM - sdb)
+#part pv.11 --size=100 --ondisk=sdb --grow
+#volgroup vg_data --pesize=4096 pv.11
+#logvol /data --fstype=xfs --name=data --vgname=vg_data --size=100 --grow
+
+# Partition clearing information
+clearpart --all --initlabel --drives={{ disk }}
+
+# System Bootloader
+#bootloader --location=mbr --driveorder={{ disk }} --append="crashkernel=auto intel_iommu=on"
+#bootloader --location=mbr --driveorder={{ disk }} --append="crashkernel=auto intel_iommu=on default_hugepagesz=1G hugepages=128 intel_idle.max_cstate=0 processor.max_cstate=1 intel_pstate=disable transparent_hugepage=never"
+
+# Use graphical install
+text
+
+# Use CDROM installation media
+#cdrom
+url --url=http://{{ pxe.ipaddr }}:8080/image/AppStream
+
+# Keyboard layouts
+keyboard --vckeymap=us --xlayouts='us'
+
+# System language
+lang en_US.UTF-8
+
+# Network information
+network --device={{ bond0.name }} --bondslaves={{ bond0.nic1 }},{{ bond0.nic2 }} --bondopts=mode=active-backup,miimon=100,primary={{ bond0.nic1 }} --noipv6
+network --device={{ bond1.name }} --bondslaves={{ bond1.nic1 }},{{ bond1.nic2 }} --bondopts=mode=active-backup,miimon=100,primary={{ bond1.nic1 }} --noipv4 --noipv6
+network --device={{ bond1.name }} --vlanid={{ bond1.vlan1 }} --onboot=on --noipv6
+network --device={{ bond1.name }} --vlanid={{ bond1.vlan2 }} --onboot=on --noipv6
+ 
+
+# Create AppStream repo
+repo --name="AppStream" --baseurl=http://{{ pxe.ipaddr }}:8080/image/AppStream
+repo --name="BaseOS" --baseurl=http://{{ pxe.ipaddr }}:8080/image/BaseOS
+
+
+# Root password
+rootpw --iscrypted $1$B2PeDAzQ$gIP4T087.0EsvU/A17ka3.
+
+# X Window System configuration information
+xconfig  --startxonboot
+
+# Run the Setup Agent on first boot
+firstboot --enable
+
+# System services
+services --enabled="chronyd"
+firewall --disabled
+
+# System timezone
+timezone Asia/Seoul --isUtc
+
+# Reboot After installation
+reboot
+
+%packages
+@^minimal-environment
+kexec-tools
+net-tools
+%end
+
+%addon com_redhat_kdump --enable --reserve-mb='auto'
+
+%end
+
+%post --log=/root/ks-post.log
+###############################################################################
+# static routing for Repo Server
+cat > /etc/sysconfig/network-scripts/route-bond0 <<EOF
+60.30.207.0/26 via {{ dhcp.gateway }}
+EOF
+###############################################################################
+
+###############################################################################
+# SSH Config
+sed -i -e '/#UseDNS/ c\UseDNS no' /etc/ssh/sshd_config
+###############################################################################
+
+###############################################################################
+# Account
+useradd core
+echo 'Skt!#@234' | passwd --stdin core
+echo "core ALL=(root) NOPASSWD:ALL" | tee -a /etc/sudoers.d/core
+chmod 0440 /etc/sudoers.d/core
+###############################################################################
+
+###############################################################################
+# Repositories
+###############################################################################
+cat <<-EOF > /etc/yum.repos.d/rhocp.repo
+[ansible-2.9-for-rhel-8-x86_64-rpms]
+name=ansible-2.9-for-rhel-8-x86_64-rpms
+baseurl=http://{{ repo.ipaddr }}/rhel/8/ansible-2.9-for-rhel-8-x86_64-rpms
+enabled=1
+gpgcheck=0
+
+[fast-datapath-for-rhel-8-x86_64-rpms]
+name=fast-datapath-for-rhel-8-x86_64-rpms
+baseurl=http://{{ repo.ipaddr }}/rhel/8/fast-datapath-for-rhel-8-x86_64-rpms
+enabled=1
+gpgcheck=0
+
+[rhel-8-for-x86_64-appstream-rpms]
+name=rhel-8-for-x86_64-appstream-rpms
+baseurl=http://{{ repo.ipaddr }}/rhel/8/rhel-8-for-x86_64-appstream-rpms
+enabled=1
+gpgcheck=0
+
+[rhel-8-for-x86_64-baseos-rpms]
+name=rhel-8-for-x86_64-baseos-rpms
+baseurl=http://{{ repo.ipaddr }}/rhel/8/rhel-8-for-x86_64-baseos-rpms
+enabled=1
+gpgcheck=0
+
+[rhocp-4.10-for-rhel-8-x86_64-rpms]
+name=rhocp-4.10-for-rhel-8-x86_64-rpms
+baseurl=http://{{ repo.ipaddr }}/rhocp/rhocp-4.10-for-rhel-8-x86_64-rpms
+enabled=1
+gpgcheck=0
+EOF
+%end
+
+
+%anaconda
+pwpolicy root --minlen=6 --minquality=1 --notstrict --nochanges --notempty
+pwpolicy user --minlen=6 --minquality=1 --notstrict --nochanges --emptyok
+pwpolicy luks --minlen=6 --minquality=1 --notstrict --nochanges --notempty
+%end

@@ -1,0 +1,8 @@
+---
+- name: Main for RHEL OS 8.5 PXE Install
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - import_role:
+        name: pxe

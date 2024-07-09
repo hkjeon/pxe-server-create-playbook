@@ -1,0 +1,15 @@
+timeout 15
+display boot.msg
+default 1
+prompt  1
+
+label 1
+  menu label ^Install Red Hat Enterprise Linux 8.5 For Legacy Mode
+  kernel vmlinuz
+  append initrd=initrd.img showopts ks=http://{{ pxe.ipaddr }}:8080/ks/kickstart.conf repo=http://{{ pxe.ipaddr }}:8080/image/ 
+
+label 2
+  menu label Boot from ^local drive
+  localboot 0x80
+
+menu end

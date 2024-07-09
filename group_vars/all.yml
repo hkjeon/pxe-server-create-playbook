@@ -1,0 +1,60 @@
+---
+disk: sda
+bond0:
+  name: "bond0"
+  nic1: "eno4"
+  nic2: "eno3"
+bond1:
+  name: "bond1"
+  nic1: "ens1f0"
+  nic2: "ens7f0"
+  vlan1: "103"
+  vlan2: "104"
+repo:
+  ipaddr: "55.55.10.200"
+pxe:
+  ipaddr: "55.55.15.240"
+dhcp:
+  subnet: "55.55.15.0"
+  netmask: "255.255.255.0"
+  gateway: "55.55.15.1"
+  rangestart: "55.55.15.241"
+  rangeend: "55.55.15.250"
+  interface: "eth0"
+worker1:
+  name: "rhel-worker-1"
+  ipaddr: "55.55.15.14"
+  macaddr: "84:16:0c:22:0a:ee"
+worker2:
+  name: "rhel-worker-2"
+  ipaddr: "55.55.15.15"
+  macaddr: "84:16:0c:22:1f:d0"
+worker3:
+  name: "rhel-worker-3"
+  ipaddr: "55.55.15.16"
+  macaddr: "84:16:0c:22:3e:9c"
+worker4:
+  name: "rhel-worker-4"
+  ipaddr: "55.55.15.17"
+  macaddr: "84:16:0c:22:06:02"
+worker5:
+  name: "rhel-worker-5"
+  ipaddr: "55.55.15.18"
+  macaddr: "84:16:0c:22:11:66"
+worker6:
+  name: "rhel-worker-6"
+  ipaddr: "55.55.15.19"
+  macaddr: "84:16:0c:21:c3:a2"
+worker7:
+  name: "rhel-worker-7"
+  ipaddr: "55.55.15.20"
+  macaddr: "84:16:0c:21:c8:34"
+worker8:
+  name: "rhel-worker-8"
+  ipaddr: "55.55.15.21"
+  macaddr: "84:16:0c:22:1e:7a"
+worker9:
+  name: "hktb1-ba1.ocp.hk.local"
+  ipaddr: "55.55.15.250"
+  macaddr: "e4:43:4b:b5:2e:15"
+  ipmiaddr: "60.30.158.16"

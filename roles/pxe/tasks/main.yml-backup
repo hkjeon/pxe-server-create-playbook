@@ -1,0 +1,178 @@
+---
+# Setup RHEL8.5 TFTP/PXE (/w kickstart) on PXE Server
+- name: Install Packages
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - tftp-server
+    - xinetd
+    - dhcp-server
+    - httpd
+    - ipmitool
+
+- name: Backup httpd.conf file
+  copy:
+    src: /etc/httpd/conf/httpd.conf
+    dest: /etc/httpd/conf/httpd.conf-backup
+
+- name: Backup dhcpd.conf file
+  copy:
+    src: /etc/dhcp/dhcpd.conf
+    dest: /etc/dhcp/dhcpd.conf-backup
+
+- name: Create dhcpd.conf file
+  template:
+    src: ../templates/dhcpd.conf.j2
+    dest: /etc/dhcp/dhcpd.conf
+
+- name: Create Directory pxelinux
+  file:
+    path: /var/lib/tftpboot/pxelinux
+    state: directory
+    owner: root
+    group: root
+
+- name: Create Directory pxelinux.cfg in the pxelinux
+  file:
+    path: /var/lib/tftpboot/pxelinux/pxelinux.cfg
+    state: directory
+    owner: root
+    group: root
+
+- name: Setup PXE Boot Server
+  copy:
+    src: ../files/{{ item }}
+    dest: /var/lib/tftpboot/pxelinux/
+  with_items:
+    - ldlinux.c32
+    - pxelinux.0
+
+- name: Setup PXE Boot Server for UEFI
+  copy:
+    src: ../files/{{ item }}
+    dest: /var/lib/tftpboot/pxelinux/
+  with_items:
+    - BOOTX64.EFI
+    - shimx64.efi
+    - grubx64.efi
+    - vmlinuz
+    - initrd.img
+
+- name: Create Directory for kickstart files.
+  file:
+    path: /var/www/html/{{ item }}
+    state: directory
+  with_items:
+    - ks
+    - image
+
+- name: Check the files in /var/www/html/image folder
+  stat:
+    path: /var/www/html/image/media.repo
+  register: stat_result
+
+- name: Unarchive RHEL8.5 DVD tar file.
+  unarchive:
+    src: ../files/rhel8-5-data.tar.gz
+    dest: /var/www/html/image/
+  when: stat_result.stat.exists == False
+
+#- name: Create the kickstart.conf file for Single NIC
+#  template:
+#    src: ../templates/kickstart.config-single.j2
+#    dest: /var/www/html/ks/kickstart.conf
+
+- name: Create the kickstart.conf file for Bonding + VLAN
+  template:
+    src: ../templates/kickstart.config-bond.j2
+    dest: /var/www/html/ks/kickstart.conf
+
+- name: Backup /etc/httpd/conf.d/autoindex.conf
+  copy:
+    src: /etc/httpd/conf.d/autoindex.conf
+    dest: /etc/httpd/conf.d/autoindex.conf-backup
+
+- name: Create the autoindex.conf in httpd folder
+  template:
+    src: ../templates/autoindex.conf.j2
+    dest: /etc/httpd/conf.d/autoindex.conf
+
+- name: Check httpd Service Port change
+  shell: sed -i 's/^Listen 80$/Listen 8080/g' /etc/httpd/conf/httpd.conf 
+
+- name: Check httpd Service Port change
+  shell: cat /etc/httpd/conf/httpd.conf | grep Listen
+  register: httpd
+- debug:
+    var: httpd.stdout_lines
+
+- name: Restart Web Serivce
+  service:
+    name: httpd
+    state: restarted
+
+- name: Check kickstart.conf Web Service
+  shell: curl http://{{ pxe.ipaddr }}:8080/ks/kickstart.conf | tail -3
+  register: ks
+- debug:
+    var: ks.stdout_lines
+
+- name: check image Web Service
+  shell: curl http://{{ pxe.ipaddr }}:8080/image/media.repo | grep name
+  register: name
+- debug:
+    var: name.stdout_lines
+
+- name: Create the boot.msg
+  template:
+    src: ../templates/boot.msg.j2
+    dest: /var/lib/tftpboot/pxelinux/boot.msg
+
+- name: Create default file for Legacy PXE
+  template:
+    src: ../templates/default.j2
+    dest: /var/lib/tftpboot/pxelinux/pxelinux.cfg/default
+
+- name: Create grub.cfg file for UEFI PXE
+  template:
+    src: ../templates/uefi-grub.cfg.j2
+    dest: /var/lib/tftpboot/pxelinux/grub.cfg
+
+- name: Enable for HTTP Service
+  service:
+    name: httpd
+    enabled: yes
+
+- name: Enable for DHCP Service
+  service:
+    name: dhcpd
+    enabled: yes
+
+- name: Restart DHCP-Server Service
+  service:
+    name: dhcpd
+    state: restarted
+
+    #- name: Check multi-user in tftp.service
+    #shell: cat /usr/lib/systemd/system/tftp.service | grep multi
+    #register: multi_result
+
+- name: Add muti-user-target in tftp.service
+  shell:
+    cmd: |
+      cat > /usr/lib/systemd/system/tftp.service << EOF
+      WantedBy=multi-user.target
+      EOF
+
+- name: Enable for TFTP Service
+  service:
+    name: tftp
+    enabled: yes
+
+- name: Restart TFTP Service
+  service:
+    name: tftp
+    state: restarted
+
+
